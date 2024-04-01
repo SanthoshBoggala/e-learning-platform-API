@@ -1,0 +1,11 @@
+{
+  "name": "e-learning-platform-api",
+  "version": "1.0.0",
+  "description": "The project revolves around building a sturdy backend API to support an e-learning platform.",
+  "main": "index.js",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "author": "",
+  "license": "ISC"
+}
