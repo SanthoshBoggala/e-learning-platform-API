@@ -11,6 +11,7 @@ const app = express();
 app.use(express.json());
 
 const userRoutes = require('./Routes/userRoutes');
+const courseRoutes = require('./Routes/courseRoutes');
 
 app.get('/', (req, res) => {
   res.send('Welcome to the homepage!');
@@ -18,6 +19,7 @@ app.get('/', (req, res) => {
 
 // Define a route
 app.use('/api/users', userRoutes);
+app.use('/api/courses', courseRoutes);
 
 // Start the server function
 const startServer = async() => {
