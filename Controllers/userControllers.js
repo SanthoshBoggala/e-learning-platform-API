@@ -4,9 +4,7 @@ const getAllUsers = async (req, res) => {
     let client;
     try {
         client = await pool.connect(); // Connect to the database and get the client object
-        console.log('before')
         const result = await client.query('SELECT * FROM users');
-        console.log('after')
         res.json(result.rows);
 
     } catch (err) {
@@ -64,21 +62,36 @@ const createUser = async (req, res) => {
 };
 
 const updateUserById = async (req, res) => {
-    const email = req.params.id;
-    const { name, username } = req.body;
+    const username = req.params.id;
+    const { name, email } = req.body;
     let client;
     try {
         client = await pool.connect();
-
-        if(username){
-            let result = await client.query('SELECT * FROM users WHERE username = $1 ', [username]);
-            if(result.rows[0]){
-                res.status(400).json( { msg: "username already exists" });
-                return;
+        if (email) {
+            // Check if the new username already exists
+            let result = await client.query('SELECT * FROM users WHERE email = $1', [email]);
+            if (result.rows[0]) {
+                return res.status(400).json({ msg: "email already exists" });
             }
         }
 
-        result = await client.query('UPDATE users SET name = $1, username = $2 WHERE email = $3 RETURNING *', [name, username, email]);
+        let qry = 'SELECT * FROM users WHERE username = $1';
+        let data = [username];
+        if(email && name){
+            qry = 'UPDATE users SET name = $1, email = $2 WHERE username = $3 RETURNING *';
+            data = [name, email, username];
+        }
+        else if(email){
+            qry = 'UPDATE users SET email = $1 WHERE username = $2 RETURNING *';
+            data = [email, username];
+        }
+        else if(name){
+            qry = 'UPDATE users SET name = $1 WHERE username = $2 RETURNING *';
+            data = [name, username]; 
+        }
+
+        // Update the user's details
+        let result = await client.query(qry , data);
         if (result.rows.length === 0) {
             return res.status(404).json({ msg: 'User not found' });
         }
@@ -92,11 +105,11 @@ const updateUserById = async (req, res) => {
 };
 
 const deleteUserById = async (req, res) => {
-    const email = req.params.id;
+    const username = req.params.id;
     let client;
     try {
         client = await pool.connect();
-        const result = await client.query('DELETE FROM users WHERE email = $1 RETURNING *', [email]);
+        const result = await client.query('DELETE FROM users WHERE username = $1 RETURNING *', [username]);
         if (result.rows.length === 0) {
             return res.status(404).json({ msg: 'User not found' });
         }
