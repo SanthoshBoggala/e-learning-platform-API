@@ -1,2 +1,30 @@
 .env
 node_modules/
+
+# CREATE TABLE enrollment (
+#     id SERIAL PRIMARY KEY,
+#     username VARCHAR(255) NOT NULL,
+#     course_id INT NOT NULL,
+#     enrollment_date TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+#     FOREIGN KEY (username) REFERENCES users(username), 
+#     FOREIGN KEY (course_id) REFERENCES courses(id) 
+# );
+
+# CREATE TABLE courses (
+#     id SERIAL PRIMARY KEY,
+#     title VARCHAR(100) NOT NULL,
+#     description TEXT,
+#     category VARCHAR(50),
+#     popularity INTEGER,
+#     duration INTEGER,
+#     level VARCHAR(20),
+#     instructors TEXT[],
+#     price INTEGER,
+#     discount INTEGER,
+#     new_price INTEGER,
+#     start_date DATE,
+#     end_date DATE,
+#     requirements TEXT[],
+#     skills_learned TEXT[],
+#     rating DECIMAL(3, 2) 
+# );
