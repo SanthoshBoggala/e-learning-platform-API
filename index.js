@@ -1,12 +1,10 @@
-// index.js
-const express = require('express');
-const pool = require('./db'); // Import the connectDB function from db.js
 require('dotenv').config();
 
-// Load environment variables
+const express = require('express');
+const pool = require('./db'); 
+
 const { PORT } = process.env;
 
-// Create an Express app
 const app = express();
 app.use(express.json());
 

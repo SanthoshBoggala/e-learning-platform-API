@@ -15,7 +15,7 @@ const getAllCourses = async (req, res) => {
         const filters = [];
 
         if (category) filters.push(`category = '${category}'`);
-        if (level){
+        if (level) {
             // Validate level
             const validLevels = ['Beginner Friendly', 'Intermediate', 'Easy', 'Hard', 'Expert'];
             if (!validLevels.includes(level)) {
@@ -23,8 +23,8 @@ const getAllCourses = async (req, res) => {
             }
             filters.push(`level = '${level}'`);
         }
-        if (popularity) filters.push(`popularity >= ${popularity}`); 
-        if (rating) filters.push(`rating >= ${rating}`);   
+        if (popularity) filters.push(`popularity >= ${popularity}`);
+        if (rating) filters.push(`rating >= ${rating}`);
         if (search) filters.push(`(title ILIKE '%${search}%' OR category ILIKE '%${search}%')`)
 
         let filterQuery = '';
@@ -74,7 +74,7 @@ const getCourseById = async (req, res) => {
 const createCourse = async (req, res) => {
     const { title, description, category, popularity, start_date, end_date, level, discount = 0, instructors, price, requirements = [], skills_learned, rating } = req.body;
 
-    if(!title || !description || !category || !popularity || !start_date || !end_date || !level || !price){
+    if (!title || !description || !category || !popularity || !start_date || !end_date || !level || !price) {
         return res.status(400).json({ msg: "Provide all fields" });
     }
 
@@ -83,8 +83,8 @@ const createCourse = async (req, res) => {
     const duration = Math.ceil(durationInMilliseconds / millisecondsInWeek);
 
     // Validate rating
-    if(!rating || rating > 5 || rating < 0 ){
-        res.status(400).json({msg: "Invalid Rating"});
+    if (!rating || rating > 5 || rating < 0) {
+        res.status(400).json({ msg: "Invalid Rating" });
     }
     // Validate level
     const validLevels = ['Beginner Friendly', 'Intermediate', 'Easy', 'Hard', 'Expert'];
@@ -101,10 +101,10 @@ const createCourse = async (req, res) => {
     }
 
     // Validate intructors
-    if(instructors && instructors.length === 0){
+    if (instructors && instructors.length === 0) {
         return res.status(400).json({ msg: "Min 1 intructor should be given" });
     }
-    
+
     let client;
     try {
         client = await pool.connect();
@@ -123,32 +123,53 @@ const createCourse = async (req, res) => {
 // PUT update course by ID
 const updateCourseById = async (req, res) => {
     const courseId = req.params.id;
-    const { title, description, category, popularity, level, instructors, price, discount, start_date, end_date, requirements = [], skills_learned, rating } = req.body;
-
-    // Validate rating
-    if(!rating || rating > 5 || rating < 0 ){
-        res.status(400).json({msg: "Invalid Rating"});
-    }
-    // Validate level
-    const validLevels = ['Beginner Friendly', 'Intermediate', 'Easy', 'Hard', 'Expert'];
-    if (!validLevels.includes(level)) {
-        return res.status(400).json({ msg: 'Invalid course level' });
-    }
-
-    // Duration
-    const durationInMilliseconds = Math.abs(new Date(end_date) - new Date(start_date));
-    const millisecondsInWeek = 7 * 24 * 60 * 60 * 1000; // 1 week = 7 days * 24 hours * 60 minutes * 60 seconds * 1000 milliseconds
-    const duration = Math.ceil(durationInMilliseconds / millisecondsInWeek);
-
-    // Discounted Price
-    let new_price = 0;
-    if(discount && price){
-        new_price = price - parseInt(( price * (discount / 100) ));
-    }
 
     let client;
     try {
         client = await pool.connect();
+
+        const course = await client.query('SELECT * FROM courses WHERE id = $1', [courseId]);
+        if (course.rows.length !==0) {
+            return res.status(400).json("course not found");
+        }
+        const courseInfo = course.rows[0];
+        const { 
+            title = courseInfo.title, 
+            description = courseInfo.description,
+            category = courseInfo.category,
+            popularity = courseInfo.popularity,
+            level = courseInfo.level,
+            instructors = courseInfo.instructors,
+            price = courseInfo.price,
+            discount = courseInfo.discount,
+            start_date = courseInfo.start_date,
+            end_date = courseInfo.end_date,
+            requirements = courseInfo.requirements,
+            skills_learned = courseInfo.skills_learned,
+            rating = courseInfo.rating 
+        } = req.body;
+        
+        // Validate rating
+        if (!rating || rating > 5 || rating < 0) {
+            res.status(400).json({ msg: "Invalid Rating" });
+        }
+        // Validate level
+        const validLevels = ['Beginner Friendly', 'Intermediate', 'Easy', 'Hard', 'Expert'];
+        if (!validLevels.includes(level)) {
+            return res.status(400).json({ msg: 'Invalid course level' });
+        }
+
+        // Duration
+        const durationInMilliseconds = Math.abs(new Date(end_date) - new Date(start_date));
+        const millisecondsInWeek = 7 * 24 * 60 * 60 * 1000; // 1 week = 7 days * 24 hours * 60 minutes * 60 seconds * 1000 milliseconds
+        const duration = Math.ceil(durationInMilliseconds / millisecondsInWeek);
+
+        // Discounted Price
+        let new_price = 0;
+        if (discount && price) {
+            new_price = price - parseInt((price * (discount / 100)));
+        }
+
         const result = await client.query('UPDATE courses SET title = $1, description = $2, category = $3, popularity = $4, duration = $5, level = $6, instructors = $7, price = $8, start_date = $9, end_date = $10, requirements = $11, skills_learned = $12, rating = $13, discount = $14, new_price = $15 WHERE id = $14 RETURNING *', [title, description, category, popularity, duration, level, instructors, price, start_date, end_date, requirements, skills_learned, rating, discount, new_price, courseId]);
         if (result.rows.length === 0) {
             return res.status(404).json({ msg: 'Course not found' });

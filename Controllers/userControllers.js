@@ -1,4 +1,9 @@
+require('dotenv').config();
+const { v4: uuidv4 } = require('uuid');
 const pool = require('../db');
+const { Resend } = require('resend')
+
+const resend = new Resend(process.env.RESEND_KEY);
 
 const getAllUsers = async (req, res) => {
     let client;
@@ -49,6 +54,26 @@ const createUser = async (req, res) => {
         if(result.rows[0]){
             res.status(400).json( { msg: "email already exists" });
             return;
+        }
+
+        const verificationToken = uuidv4();
+
+        const { data, error } = await resend.emails.send({
+            from: `${process.env.DOMAIN}`,
+            to: email,
+            subject: 'Email Verification',
+            html: `
+                <p>Dear ${name},</p>
+                <p>Thank you for signing up with us!</p>
+                <p>Please click the following link to verify your email:</p>
+                <p><a href="http://yourwebsite.com/verify-email?token=${verificationToken}">Verify Email</a></p>
+                <p>If you did not sign up for an account, please ignore this email.</p>
+                <p>Sincerely,<br/>Your Company</p>
+            `,
+        });
+
+        if (error) {
+            return res.status(500).json({ msg: 'Error sending verification email' });
         }
 
         result = await client.query('INSERT INTO users (username, name, email) VALUES ($1, $2, $3) RETURNING *', [username, name, email]);

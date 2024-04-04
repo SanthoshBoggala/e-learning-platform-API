@@ -1,9 +1,14 @@
+require('dotenv').config();
+
 const pool = require('../db');
+const { Resend } = require('resend')
+
+const resend = new Resend(process.env.RESEND_KEY);
 
 const enroll = async (req, res) => {
     const { username, course_id } = req.body;
 
-    if(!username || !course_id){
+    if (!username || !course_id) {
         return res.status(400).json("provide username and course id");
     }
 
@@ -16,11 +21,47 @@ const enroll = async (req, res) => {
             return res.status(400).json({ error: 'User is already enrolled in this course' });
         }
 
-        const result = await client.query('INSERT INTO enrollment (username, course_id) VALUES ($1, $2) RETURNING *', [username, course_id]);
+        // const result = await client.query('INSERT INTO enrollment (username, course_id) VALUES ($1, $2) RETURNING *', [username, course_id]);
+
+        if (1) {
+            let course = await client.query('SELECT * FROM courses WHERE id = $1', [course_id]);
+            let user = await client.query('SELECT * FROM users WHERE username = $1', [username])
+
+            course = course.rows[0];
+            user = user.rows[0];
+
+            const { data, error } = await resend.emails.send({
+                from: `${process.env.DOMAIN}`,
+                to: user.email,
+                subject: "Thank You for Purchasing Our Course",
+                html: `
+                    <p>Dear ${user.name},</p>
+                    <p>Thank you for purchasing our course "<strong>${course.title}</strong>".</p>
+                    <p>Course Description: ${course.description}</p>
+                    <p>Category: ${course.category}</p>
+                    <p>Popularity: ${course.popularity}</p>
+                    <p>Level: ${course.level}</p>
+                    <p>Instructors: ${course.instructors.join(', ')}</p>
+                    <p>Price: ${course.new_price}</p>
+                    <p>Discount: ${course.discount}</p>
+                    <p>Start Date: ${course.start_date}</p>
+                    <p>End Date: ${course.end_date}</p>
+                    <p>Skills Learned: ${course.skills_learned.join(', ')}</p>
+                    <p>Rating: ${course.rating}</p>
+                    <p>We hope you enjoy the course!</p>
+                    <p>Sincerely,<br/>E-Learning-Platform</p>
+                  `
+            });
+
+            if (error) {
+                console.error("Error sending email:", error);
+                return res.status(500).json("Error in sending email");
+            }
+        }
 
         res.status(200).json(result.rows[0]);
     } catch (error) {
-        console.error(error);
+        console.error("Internal server error:", error);
         res.status(500).json({ error: 'Internal server error' });
     } finally {
         if (client) {
