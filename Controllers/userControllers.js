@@ -2,7 +2,8 @@ require('dotenv').config();
 
 const bcrypt = require('bcrypt');
 const pool = require('../db');
-const { sendEmailConfirmation } = require('../Services/emailServices');
+const { sendEmailConfirmation,
+    sendPassResetEmail } = require('../Services/emailServices');
 
 const getAllUsers = async (req, res) => {
     let client;
@@ -39,22 +40,19 @@ const getUserById = async (req, res) => {
 
 const createUser = async (req, res) => {
     const {username, name, email, password } = req.body;
-    const { buffer, mimetype } = req.file;
+    const { buffer, mimetype } = req.file || { buffer : [], mimetype: "" };
+
+    if(!name || !email || !password){
+        return res.status(400).json("All fields must be provided");
+    }
+
     let client;
     try {
         client = await pool.connect();
 
-        console.log(buffer, mimetype);
-
-        let result = await client.query('SELECT * FROM users WHERE username = $1 ', [username]);
+        let result = await client.query('SELECT * FROM users WHERE username = $1 OR email = $2', [username, email]);
         if(result.rows[0]){
-            res.status(400).json( { msg: "username already exists" });
-            return;
-        }
-
-        result = await client.query('SELECT * FROM users WHERE email = $1 ', [email]);
-        if(result.rows[0]){
-            res.status(400).json( { msg: "email already exists" });
+            res.status(400).json( { msg: "username/email already exists" });
             return;
         }
 
@@ -65,9 +63,9 @@ const createUser = async (req, res) => {
             return res.status(500).json({ msg: 'Error sending verification email' });
         }
 
-        const hashedPassword = await bcrypt.hash(password, 10);
+        const hashedPassword = await bcrypt.hash(password, Number(process.env.HASHSALTS));
 
-        // result = await client.query('INSERT INTO users (username, name, email, password) VALUES ($1, $2, $3, $4) RETURNING *', [username, name, email, hashedPassword]);
+        result = await client.query('INSERT INTO users (username, name, email, password, image, img_type) VALUES ($1, $2, $3, $4, $5, $6) RETURNING *', [username, name, email, hashedPassword, buffer, mimetype]);
         res.status(201).json(result.rows[0]);
     } catch (err) {
         console.error('Error creating user:', err);
@@ -79,7 +77,8 @@ const createUser = async (req, res) => {
 
 const updateUserById = async (req, res) => {
     const username = req.params.id;
-    const { name, email } = req.body;
+    let { email } = req.body;
+
     let client;
     try {
         client = await pool.connect();
@@ -90,22 +89,32 @@ const updateUserById = async (req, res) => {
             }
         }
 
-        let qry = 'SELECT * FROM users WHERE username = $1';
-        let data = [username];
-        if(email && name){
-            qry = 'UPDATE users SET name = $1, email = $2 WHERE username = $3 RETURNING *';
-            data = [name, email, username];
+        const user = await client.query('SELECT * FROM users WHERE username = $1', [username]);
+        if(user.rows.length == 0){
+            return res.status(404).json({ msg: 'User not found' });
         }
-        else if(email){
-            qry = 'UPDATE users SET email = $1 WHERE username = $2 RETURNING *';
-            data = [email, username];
+        const userInfo = user.rows[0];
+        let { name = userInfo.name ,
+              password,
+        } = req.body;
+        let { buffer , mimetype } = req.file || { buffer : [], mimetype: "" };
+
+        if(!email){
+            email = userInfo.email;
         }
-        else if(name){
-            qry = 'UPDATE users SET name = $1 WHERE username = $2 RETURNING *';
-            data = [name, username]; 
+        if(password){
+            password = await bcrypt.hash(password, Number(process.env.HASHSALTS));
+        } else {
+            password = userInfo.password;
         }
 
-        let result = await client.query(qry , data);
+        let qry = 'UPDATE users SET name = $1, email = $2, password = $3 WHERE username = $4 RETURNING *'
+        let fields = [name, email, password, username];
+        if(buffer.length !== 0 && mimetype){
+            qry = 'UPDATE users SET name = $1, email = $2, password = $3, image = $4, image_type = $5 WHERE username = $6 RETURNING *';
+            fields = [name, email, password, buffer, mimetype, username];
+        }
+        const result = await client.query(qry, fields);
         if (result.rows.length === 0) {
             return res.status(404).json({ msg: 'User not found' });
         }
@@ -137,7 +146,7 @@ const deleteUserById = async (req, res) => {
 };
 
 const passwordReset = async (req, res) => {
-    const { id } = req.params;
+    const username = req.params.id;
     const { password } = req.body;
 
     try {
@@ -147,12 +156,19 @@ const passwordReset = async (req, res) => {
 
         const client = await pool.connect();
 
-        const hashedPassword = await bcrypt.hash(password, 10);
+        const hashedPassword = await bcrypt.hash(password, process.env.HASHSALTS);
 
-        const result = await client.query('UPDATE users SET password = $1 WHERE id = $2 RETURNING *', [hashedPassword, id]);
+        const result = await client.query('UPDATE users SET password = $1 WHERE username = $2 RETURNING *', [hashedPassword, username]);
 
         if (result.rows.length === 0) {
             return res.status(404).json({ msg: 'User not found' });
+        }
+
+        const { data, error } = await sendEmailConfirmation(result.rows[0].name, email);
+
+        if (error) {
+            console.log(error);
+            return res.status(500).json({ msg: 'Error sending verification email' });
         }
 
         res.json({ msg: 'Password reset successfully' });

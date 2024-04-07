@@ -13,7 +13,7 @@ const {
 router.get('/', getAllUsers);
 router.get('/:id', getUserById);
 router.post('/', upload.single('image') , createUser);
-router.put('/:id', updateUserById);
+router.put('/:id',upload.single('image') , updateUserById);
 router.delete('/:id', deleteUserById);
 
 module.exports = router;
