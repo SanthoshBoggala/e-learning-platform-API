@@ -9,7 +9,12 @@ const getAllUsers = async (req, res) => {
     let client;
     try {
         client = await pool.connect(); 
-        const result = await client.query('SELECT * FROM users');
+
+        const page = parseInt(req.query.page) || 1;
+        const limit = parseInt(req.query.limit) || 10;
+        const offset = (page - 1) * limit;
+
+        const result = await client.query('SELECT * FROM users LIMIT $1 OFFSET $2', [limit, offset]);
         res.json(result.rows);
 
     } catch (err) {
@@ -164,11 +169,11 @@ const passwordReset = async (req, res) => {
             return res.status(404).json({ msg: 'User not found' });
         }
 
-        const { data, error } = await sendEmailConfirmation(result.rows[0].name, email);
+        const { data, error } = await sendPassResetEmail(result.rows[0].name, email);
 
         if (error) {
             console.log(error);
-            return res.status(500).json({ msg: 'Error sending verification email' });
+            return res.status(500).json({ msg: 'Error sending email' });
         }
 
         res.json({ msg: 'Password reset successfully' });

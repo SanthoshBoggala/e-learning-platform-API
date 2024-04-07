@@ -1,6 +1,5 @@
 const pool = require('../db');
 
-// GET all courses
 const getAllCourses = async (req, res) => {
     const { category, level, popularity, rating, search } = req.query;
 
@@ -14,15 +13,14 @@ const getAllCourses = async (req, res) => {
 
         const filters = [];
 
-        if (category) filters.push(`category = '${category}'`);
         if (level) {
-            // Validate level
             const validLevels = ['Beginner Friendly', 'Intermediate', 'Easy', 'Hard', 'Expert'];
             if (!validLevels.includes(level)) {
                 return res.status(400).json({ msg: 'Invalid course level' });
             }
             filters.push(`level = '${level}'`);
         }
+        if (category) filters.push(`category = '${category}'`);
         if (popularity) filters.push(`popularity >= ${popularity}`);
         if (rating) filters.push(`rating >= ${rating}`);
         if (search) filters.push(`(title ILIKE '%${search}%' OR category ILIKE '%${search}%')`)
@@ -36,7 +34,7 @@ const getAllCourses = async (req, res) => {
         const query = `SELECT * FROM courses ${filterQuery} ORDER BY id LIMIT $1 OFFSET $2`;
         const result = await client.query(query, [limit, offset]);
 
-        console.log(result.rowCount)
+        console.log(result.rowCount);
         res.json(result.rows);
 
     } catch (err) {
@@ -49,7 +47,6 @@ const getAllCourses = async (req, res) => {
     }
 };
 
-// GET course by ID
 const getCourseById = async (req, res) => {
     const courseId = req.params.id;
     let client;
@@ -70,7 +67,6 @@ const getCourseById = async (req, res) => {
     }
 };
 
-// POST create a new course
 const createCourse = async (req, res) => {
     const { title, description, category, popularity, start_date, end_date, level, discount = 0, instructors, price, requirements = [], skills_learned, rating } = req.body;
 
@@ -120,7 +116,6 @@ const createCourse = async (req, res) => {
     }
 };
 
-// PUT update course by ID
 const updateCourseById = async (req, res) => {
     const courseId = req.params.id;
 
@@ -185,7 +180,6 @@ const updateCourseById = async (req, res) => {
     }
 };
 
-// DELETE course by ID
 const deleteCourseById = async (req, res) => {
     const courseId = req.params.id;
     let client;

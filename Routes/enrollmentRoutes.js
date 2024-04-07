@@ -3,12 +3,12 @@ const router = express.Router();
 
 const { 
     enroll,
-    viewAllEnrolledCourses,
+    viewMyEnrolledCourses,
     viewAllEnrolledStudents
 } = require('../Controllers/enrollmentControllers');
 
 router.post('/', enroll);
-router.get('/user-courses', viewAllEnrolledCourses);
+router.get('/my_courses', viewMyEnrolledCourses);
 router.get('/courses', viewAllEnrolledStudents);
 
 module.exports = router;

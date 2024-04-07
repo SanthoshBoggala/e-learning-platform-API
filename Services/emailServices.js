@@ -22,8 +22,6 @@ const sendEmailConfirmation = async (name, email) => {
     return { data, error };
 }
 const sendPassResetEmail = async (name, email) => {
-    const resetToken = uuidv4();
-
     const { data, error } = await resend.emails.send({
         from: 'e-learning-platform <onboarding@resend.dev>',
         to: ['bsanthoshbsr835@gmail.com'],
@@ -38,7 +36,35 @@ const sendPassResetEmail = async (name, email) => {
 
     return { data, error };
 };
+
+const sendCourseEnrollEmail = async (user, course) => {
+    const { data, error } = await resend.emails.send({
+        from: 'e-learning-platform <onboarding@resend.dev>',
+        to: ['bsanthoshbsr835@gmail.com'],
+        subject: "Thank You for Purchasing Our Course",
+        html: `
+            <p>Dear ${user.name},</p>
+            <p>Thank you for purchasing our course "<strong>${course.title}</strong>".</p>
+            <p>Course Description: ${course.description}</p>
+            <p>Category: ${course.category}</p>
+            <p>Popularity: ${course.popularity}</p>
+            <p>Level: ${course.level}</p>
+            <p>Instructors: ${course.instructors.join(', ')}</p>
+            <p>Price: ${course.new_price}</p>
+            <p>Discount: ${course.discount}</p>
+            <p>Start Date: ${course.start_date}</p>
+            <p>End Date: ${course.end_date}</p>
+            <p>Skills Learned: ${course.skills_learned.join(', ')}</p>
+            <p>We hope you enjoy the course!</p>
+            <p>Sincerely,<br/>E-Learning-Platform</p>
+        `
+    });
+
+    return { data, error };
+};
+
 module.exports = {
     sendPassResetEmail,
-    sendEmailConfirmation
+    sendEmailConfirmation,
+    sendCourseEnrollEmail
 }
