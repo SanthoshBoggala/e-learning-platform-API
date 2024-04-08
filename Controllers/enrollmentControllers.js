@@ -2,12 +2,10 @@ require('dotenv').config();
 
 const pool = require('../db');
 const { sendCourseEnrollEmail } = require('../Services/emailServices');
-const { Resend } = require('resend')
-
-const resend = new Resend(process.env.RESEND_KEY);
 
 const enroll = async (req, res) => {
-    const { username, course_id } = req.body;
+    const { username } = req.user;
+    const { course_id } = req.body;
 
     if (!username || !course_id) {
         return res.status(400).json("provide username and course id");
@@ -16,15 +14,15 @@ const enroll = async (req, res) => {
     let client;
     try {
         client = await pool.connect();
-        const checkResult = await client.query('SELECT * FROM enrollment WHERE username = $1 AND course_id = $2', [username, course_id]);
+        const existsCourse = await client.query('SELECT * FROM enrollment WHERE username = $1 AND course_id = $2', [username, course_id]);
 
-        if (checkResult.rows.length > 0) {
+        if (existsCourse.rows.length > 0) {
             return res.status(400).json({ error: 'User is already enrolled in this course' });
         }
 
-        const result = await client.query('INSERT INTO enrollment (username, course_id) VALUES ($1, $2) RETURNING *', [username, course_id]);
+        const enrolledCourse = await client.query('INSERT INTO enrollment (username, course_id) VALUES ($1, $2) RETURNING *', [username, course_id]);
 
-        if (result.rows.length !== 0) {
+        if (enrolledCourse.rows.length !== 0) {
             let course = await client.query('SELECT * FROM courses WHERE id = $1', [course_id]);
             let user = await client.query('SELECT * FROM users WHERE username = $1', [username])
 
@@ -36,7 +34,7 @@ const enroll = async (req, res) => {
             }
         }
 
-        res.status(200).json(result.rows[0]);
+        res.status(200).json({ enrolledCourse: enrolledCourse.rows[0] });
     } catch (error) {
         console.error("Internal server error:", error);
         res.status(500).json({ error: 'Internal server error' });
@@ -48,7 +46,7 @@ const enroll = async (req, res) => {
 };
 
 const viewMyEnrolledCourses = async (req, res) => {
-    const {username} = req.body;
+    const { username } = req.user;
     const { page = 1, limit = 10 } = req.query;
     const offset = (page - 1) * limit;
 
@@ -60,9 +58,9 @@ const viewMyEnrolledCourses = async (req, res) => {
     try {
         client = await pool.connect();
 
-        const result = await client.query('SELECT e.*, c.* FROM enrollment e LEFT JOIN courses c ON e.course_id = c.id WHERE e.username = $1 ORDER BY  e.enrollment_date DESC LIMIT $2 OFFSET $3', [username, limit, offset]);
+        const allMyCourses = await client.query('SELECT e.*, c.* FROM enrollment e LEFT JOIN courses c ON e.course_id = c.id WHERE e.username = $1 ORDER BY  e.enrollment_date DESC LIMIT $2 OFFSET $3', [username, limit, offset]);
 
-        res.json(result.rows);
+        res.json({ allMyCourses: allMyCourses.rows });
     } catch (error) {
         console.error("Internal server error:", error);
         res.status(500).json({ error: 'Internal server error' });
@@ -74,7 +72,7 @@ const viewMyEnrolledCourses = async (req, res) => {
 };
 
 const viewAllEnrolledStudents = async (req, res) => {
-    const { course_id, username, page = 1, limit = 10, search } = req.query;
+    const { course_id, page = 1, limit = 10, search } = req.query;
 
     const offset = (page - 1) * limit;
 
@@ -93,11 +91,6 @@ const viewAllEnrolledStudents = async (req, res) => {
             values.push(course_id);
         }
 
-        if (username) {
-            query += ` AND e.username = $${values.length + 1}`;
-            values.push(username);
-        }
-
         if (search) {
             query += ` AND e.course_id IN (SELECT id FROM courses WHERE title ILIKE $${values.length + 1} OR category ILIKE $${values.length + 1})`;
             values.push(`%${search}%`);
@@ -107,8 +100,8 @@ const viewAllEnrolledStudents = async (req, res) => {
 
         values.push(limit, offset);
 
-        const result = await client.query(query, values);
-        res.status(200).json(result.rows);
+        const enrolledCourses = await client.query(query, values);
+        res.status(200).json({ enrolledCourses: enrolledCourses.rows });
 
     } catch (error) {
         console.error(error);

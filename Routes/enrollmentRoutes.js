@@ -7,8 +7,13 @@ const {
     viewAllEnrolledStudents
 } = require('../Controllers/enrollmentControllers');
 
-router.post('/', enroll);
-router.get('/my_courses', viewMyEnrolledCourses);
-router.get('/courses', viewAllEnrolledStudents);
+// middlewares
+const validateAdmin = require('../Middlewares/validateAdmin');
+const validateStudent = require('../Middlewares/validateStudent');
+
+// routes
+router.post('/', validateStudent, enroll);
+router.get('/my_courses', validateStudent, viewMyEnrolledCourses);
+router.get('/courses', validateAdmin, viewAllEnrolledStudents);
 
 module.exports = router;

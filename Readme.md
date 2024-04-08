@@ -25,3 +25,4 @@ The goal of this project is to develop a robust backend API for an e-learning pl
 7. **Error Handling and Logging**:
     - Implement robust error handling mechanisms to provide meaningful error messages to clients.
     - Utilize logging to track API requests, responses, and any potential errors or exceptions for debugging purposes.
+

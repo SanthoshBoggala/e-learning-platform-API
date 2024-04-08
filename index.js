@@ -3,8 +3,6 @@ require('dotenv').config();
 const express = require('express');
 const pool = require('./db'); 
 
-const { PORT } = process.env;
-
 const app = express();
 app.use(express.json());
 
@@ -21,12 +19,13 @@ app.use('/api/users', userRoutes);
 app.use('/api/courses', courseRoutes);
 app.use('/api/enroll', enrollRoutes);
 
+const port = process.env.PORT || 3000;
 // Start the server function
 const startServer = async() => {
   try {
     await pool.connect(); // Connect to the database
-    app.listen(PORT, () => {
-      console.log(`Server is running on port ${PORT}`);
+    app.listen( port , () => {
+      console.log(`Server is running on port ${port}`);
     });
   } catch (error) {
     console.error('Error starting server:', error);

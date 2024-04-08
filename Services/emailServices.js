@@ -8,7 +8,7 @@ const sendEmailConfirmation = async (name, email) => {
 
     const { data, error } = await resend.emails.send({
         from: 'e-learning-platform <onboarding@resend.dev>',
-        to: ['bsanthoshbsr835@gmail.com'],
+        to: ['bsanthoshbsr835@gmail.com', email],
         subject: 'Email Verification',
         html: `
             <p>Dear ${name},</p>
@@ -24,7 +24,7 @@ const sendEmailConfirmation = async (name, email) => {
 const sendPassResetEmail = async (name, email) => {
     const { data, error } = await resend.emails.send({
         from: 'e-learning-platform <onboarding@resend.dev>',
-        to: ['bsanthoshbsr835@gmail.com'],
+        to: ['bsanthoshbsr835@gmail.com', email],
         subject: 'Password Reset Request Successfull',
         html: `
             <p>Dear ${name},</p>
@@ -40,7 +40,7 @@ const sendPassResetEmail = async (name, email) => {
 const sendCourseEnrollEmail = async (user, course) => {
     const { data, error } = await resend.emails.send({
         from: 'e-learning-platform <onboarding@resend.dev>',
-        to: ['bsanthoshbsr835@gmail.com'],
+        to: ['bsanthoshbsr835@gmail.com', user.email],
         subject: "Thank You for Purchasing Our Course",
         html: `
             <p>Dear ${user.name},</p>

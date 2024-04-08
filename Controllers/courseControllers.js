@@ -32,10 +32,10 @@ const getAllCourses = async (req, res) => {
 
         // Fetch courses based on filters and pagination
         const query = `SELECT * FROM courses ${filterQuery} ORDER BY id LIMIT $1 OFFSET $2`;
-        const result = await client.query(query, [limit, offset]);
+        const courses = await client.query(query, [limit, offset]);
 
-        console.log(result.rowCount);
-        res.json(result.rows);
+        console.log(courses.rowCount);
+        res.json({ courses: courses.rows });
 
     } catch (err) {
         console.error('Error fetching courses:', err);
@@ -52,11 +52,11 @@ const getCourseById = async (req, res) => {
     let client;
     try {
         client = await pool.connect();
-        const result = await client.query('SELECT * FROM courses WHERE id = $1', [courseId]);
-        if (result.rows.length === 0) {
+        const course = await client.query('SELECT * FROM courses WHERE id = $1', [courseId]);
+        if (course.rows.length === 0) {
             return res.status(404).json({ msg: 'Course not found' });
         }
-        res.json(result.rows[0]);
+        res.json({course: course.rows[0]});
     } catch (err) {
         console.error('Error fetching course by ID:', err);
         res.status(500).json({ msg: 'Internal server error' });
@@ -104,8 +104,8 @@ const createCourse = async (req, res) => {
     let client;
     try {
         client = await pool.connect();
-        const result = await client.query('INSERT INTO courses (title, description, category, popularity, duration, level, instructors, price, discount, new_price , start_date, end_date, requirements, skills_learned, rating) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15) RETURNING *', [title, description, category, popularity, duration, level, instructors, price, discount, new_price, start_date, end_date, requirements, skills_learned, rating]);
-        res.status(201).json(result.rows[0]);
+        const newCourse = await client.query('INSERT INTO courses (title, description, category, popularity, duration, level, instructors, price, discount, new_price , start_date, end_date, requirements, skills_learned, rating) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15) RETURNING *', [title, description, category, popularity, duration, level, instructors, price, discount, new_price, start_date, end_date, requirements, skills_learned, rating]);
+        res.status(201).json({ newCourse: newCourse.rows[0] });
     } catch (err) {
         console.error('Error creating course:', err);
         res.status(400).json({ msg: 'Bad request' });
@@ -165,11 +165,11 @@ const updateCourseById = async (req, res) => {
             new_price = price - parseInt((price * (discount / 100)));
         }
 
-        const result = await client.query('UPDATE courses SET title = $1, description = $2, category = $3, popularity = $4, duration = $5, level = $6, instructors = $7, price = $8, start_date = $9, end_date = $10, requirements = $11, skills_learned = $12, rating = $13, discount = $14, new_price = $15 WHERE id = $14 RETURNING *', [title, description, category, popularity, duration, level, instructors, price, start_date, end_date, requirements, skills_learned, rating, discount, new_price, courseId]);
-        if (result.rows.length === 0) {
+        const updatedCourse = await client.query('UPDATE courses SET title = $1, description = $2, category = $3, popularity = $4, duration = $5, level = $6, instructors = $7, price = $8, start_date = $9, end_date = $10, requirements = $11, skills_learned = $12, rating = $13, discount = $14, new_price = $15 WHERE id = $14 RETURNING *', [title, description, category, popularity, duration, level, instructors, price, start_date, end_date, requirements, skills_learned, rating, discount, new_price, courseId]);
+        if (updatedCourse.rows.length === 0) {
             return res.status(404).json({ msg: 'Course not found' });
         }
-        res.json(result.rows[0]);
+        res.json({ updatedCourse: updatedCourse.rows[0] });
     } catch (err) {
         console.error('Error updating course:', err);
         res.status(400).json({ msg: 'Bad request' });
@@ -185,11 +185,13 @@ const deleteCourseById = async (req, res) => {
     let client;
     try {
         client = await pool.connect();
-        const result = await client.query('DELETE FROM courses WHERE id = $1 RETURNING *', [courseId]);
-        if (result.rows.length === 0) {
+        const deletedCourse = await client.query('DELETE FROM courses WHERE id = $1 RETURNING *', [courseId]);
+        if (deletedCourse.rows.length === 0) {
             return res.status(404).json({ msg: 'Course not found' });
         }
-        res.json({ msg: 'Course deleted successfully' });
+        res.json({ deletedCourse: deletedCourse.rows[0],
+             msg: 'Course deleted successfully' 
+        });
     } catch (err) {
         console.error('Error deleting course:', err);
         res.status(500).json({ msg: 'Internal server error' });
