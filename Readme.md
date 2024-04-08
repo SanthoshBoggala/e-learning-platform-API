@@ -26,3 +26,27 @@ The goal of this project is to develop a robust backend API for an e-learning pl
     - Implement robust error handling mechanisms to provide meaningful error messages to clients.
     - Utilize logging to track API requests, responses, and any potential errors or exceptions for debugging purposes.
 
+## Technologies Used:
+
+- **Backend Framework**: Node.js with Express.js
+- **Database**: neon.tech (PostgreSQL)
+- **Email Service**: resend.com
+- **Authentication**: JWT (JSON Web Tokens)
+- **Password Hashing**: bcrypt
+- **Error Handling**: Custom middleware and logging libraries
+
+## Getting Started:
+
+To get started with the project, follow these steps:
+
+1. Clone the repository to your local machine.
+2. Install dependencies using `npm install`.
+3. Set up the neon.tech database and configure the connection in the project.
+4. Set up an account with resend.com for email integration and configure the credentials in the project.
+5. Add your jwt secret key, Hashsalts, domain, resend key, required neon.tech postgreSQL details and the desired port to a `.env` file in the project root directory before running `npm start`. Example `.env` file content:
+6. Run the server using `npm start`.
+7. Explore the API endpoints using tools like Postman or curl or thunder client.
+
+## Contributors:
+
+- Boggala Santhosh
